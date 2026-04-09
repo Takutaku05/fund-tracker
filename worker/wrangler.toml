@@ -1,0 +1,19 @@
+name = "fund-tracker-worker"
+main = "src/index.ts"
+compatibility_date = "2025-04-01"
+
+# Cron Trigger: 毎日 18:00 JST = 09:00 UTC
+[triggers]
+crons = ["0 9 * * *"]
+
+# D1 Database
+[[d1_databases]]
+binding = "DB"
+database_name = "fund-tracker-db"
+database_id = "YOUR_D1_DATABASE_ID"  # wrangler d1 create fund-tracker-db で取得したIDに差し替え
+
+# 環境変数
+[vars]
+FUND_CD = "253425"       # eMAXIS Slim 全世界株式のファンドコード（推定値・差し替え可能）
+TOTAL_UNITS = "150000"   # 保有口数（口）- 自分の保有数に変更してください
+TOTAL_INVESTED = "200000" # 投資総額（円）- 自分の投資額に変更してください
