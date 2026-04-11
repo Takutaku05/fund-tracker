@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
-import type { Env, ApiResponse, LatestNavResponse } from '../types';
-import { calculateChange, calculateValuation } from '../lib/calc';
+import type { Env, ApiResponse, LatestNavResponse, AlltimePeakResponse } from '../types';
+import { calculateChange } from '../lib/calc';
 
 const nav = new Hono<{ Bindings: Env }>();
 
@@ -54,39 +54,43 @@ nav.get('/latest', async (c) => {
 });
 
 /**
- * GET /api/nav/valuation
- * 保有口数と投資総額に基づく評価額を返す
+ * GET /api/nav/alltime-peak
+ * 全期間の最高値と現在値からの下落率を返す
  */
-nav.get('/valuation', async (c) => {
+nav.get('/alltime-peak', async (c) => {
   try {
-    const row = await c.env.DB.prepare(
-      'SELECT * FROM nav_history ORDER BY date DESC LIMIT 1'
+    const peakRow = await c.env.DB.prepare(
+      'SELECT date, nav FROM nav_history ORDER BY nav DESC LIMIT 1'
     ).first();
 
-    if (!row) {
+    const latestRow = await c.env.DB.prepare(
+      'SELECT nav FROM nav_history ORDER BY date DESC LIMIT 1'
+    ).first();
+
+    if (!peakRow || !latestRow) {
       return c.json<ApiResponse<null>>({
         success: false,
         error: 'No NAV data available',
       }, 404);
     }
 
-    const current = row as unknown as { date: string; nav: number };
-    const totalUnits = parseInt(c.env.TOTAL_UNITS || '0', 10);
-    const totalInvested = parseInt(c.env.TOTAL_INVESTED || '0', 10);
+    const peak = peakRow as unknown as { date: string; nav: number };
+    const latest = latestRow as unknown as { nav: number };
 
-    const valuation = calculateValuation(
-      current.nav,
-      totalUnits,
-      totalInvested,
-      current.date
-    );
+    const drawdown = latest.nav - peak.nav;
+    const drawdownPercent = Math.round((drawdown / peak.nav) * 10000) / 100;
 
-    return c.json<ApiResponse<typeof valuation>>({
+    return c.json<ApiResponse<AlltimePeakResponse>>({
       success: true,
-      data: valuation,
+      data: {
+        peak: peak.nav,
+        peakDate: peak.date,
+        drawdown,
+        drawdownPercent,
+      },
     });
   } catch (error) {
-    console.error('[nav/valuation] Error:', error);
+    console.error('[nav/alltime-peak] Error:', error);
     return c.json<ApiResponse<null>>({
       success: false,
       error: 'Internal server error',

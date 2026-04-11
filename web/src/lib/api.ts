@@ -1,4 +1,4 @@
-import type { ApiResponse, LatestNavData, ValuationData, NavHistoryRecord, Period } from '../types';
+import type { ApiResponse, LatestNavData, AlltimePeakData, NavHistoryRecord, Period } from '../types';
 
 /**
  * API ベース URL
@@ -26,8 +26,8 @@ export function fetchLatestNav(): Promise<LatestNavData> {
   return fetchApi<LatestNavData>('/api/nav/latest');
 }
 
-export function fetchValuation(): Promise<ValuationData> {
-  return fetchApi<ValuationData>('/api/nav/valuation');
+export function fetchAlltimePeak(): Promise<AlltimePeakData> {
+  return fetchApi<AlltimePeakData>('/api/nav/alltime-peak');
 }
 
 export function fetchHistory(period: Period): Promise<NavHistoryRecord[]> {

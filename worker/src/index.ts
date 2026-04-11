@@ -40,7 +40,7 @@ app.get('/', (c) => {
     version: '1.0.0',
     endpoints: [
       'GET /api/nav/latest',
-      'GET /api/nav/valuation',
+      'GET /api/nav/alltime-peak',
       'GET /api/history?period=month',
       'GET /api/health',
     ],

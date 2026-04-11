@@ -1,6 +1,12 @@
 # Fund Tracker
 
-Cloudflare 関連サービス (Workers, D1, Pages) を活用した、eMAXIS Slim 全世界株式（オール・カントリー）の基準価額および評価額トラッカーです。
+Cloudflare 関連サービス (Workers, D1, Pages) を活用した、eMAXIS Slim 全世界株式（オール・カントリー）の基準価額・下落率トラッカーです。
+
+## 主な機能
+- **全期間最高値からの下落率**: データベース全レコードの最高値からの下落率を常時表示
+- **期間ピーク下落率**: 選択した期間（1W / 1M / 3M / 6M / 1Y / ALL）の最高値からの下落率（ドローダウン）をリアルタイムで表示
+- **基準価額チャート**: 期間内の価格推移をグラフで表示し、ピーク値に参照線を描画
+- **自動データ収集**: 毎日 18:00 JST に最新の基準価額を取得して保存
 
 ## 技術スタック
 - **バックエンド**: Cloudflare Workers, Hono, TypeScript
@@ -8,38 +14,34 @@ Cloudflare 関連サービス (Workers, D1, Pages) を活用した、eMAXIS Slim
 - **フロントエンド**: Cloudflare Pages, React, Vite, Recharts, TypeScript
 
 ## アーキテクチャ
-- **Cron Trigger**: 毎日 18:00 JST に eMAXIS の CSV API から最新の基準価額を取得して D1 に保存します。
-- **Workers API**: フロントエンド向けに最新の基準価額、評価額、履歴データを提供します。
+- **Cron Trigger**: 毎日 18:00 JST に投資信託協会の投信総合検索ライブラリー CSV API から最新の基準価額を取得して D1 に保存します。
+- **Workers API**: フロントエンド向けに最新の基準価額、全期間最高値、履歴データを提供します。
 - **Pages**: Vite と React で構築された UI をホスティングし、ユーザーの端末にリアルタイムで計算結果を表示します。
 
 ## 使い方 (ローカル開発)
 
-### 1. 準備
-```bash
-# パッケージをインストール
-npm install
-```
+### 1. バックエンド (Worker) のセットアップ
 
-### 2. バックエンド (Worker) のセットアップ
-
-`worker/wrangler.toml` 内の以下の環境変数を自分の保有数に変更してください。
+`worker/wrangler.toml` 内の以下の環境変数を必要に応じて変更してください。
 - `FUND_CD`: ファンドコード (デフォルト: "253425")
-- `TOTAL_UNITS`: 保有口数
-- `TOTAL_INVESTED`: 投資総額
 
-ローカルDBを初期化します:
+依存パッケージをインストールしてローカル DB を初期化し、開発サーバーを起動します:
 ```bash
 cd worker
+npm install
 npm run db:init
 npm run dev
 ```
 
-### 3. フロントエンド (Web) の起動
+### 2. フロントエンド (Web) の起動
 新しいターミナルを開き、フロントエンドを起動します:
 ```bash
 cd web
+npm install
 npm run dev
 ```
+
+ブラウザで `http://localhost:5173` を開くと、期間タブ切り替えに連動した下落率カードとチャートが確認できます。
 
 ## デプロイ方法
 
@@ -71,6 +73,6 @@ npm run deploy
 4. 環境変数設定
    - `VITE_API_BASE`: デプロイされた Worker の URL (例: `https://fund-tracker-worker.your-subdomain.workers.dev`)
 
-## 注意事項
-- `fund_cd = 253425` は推定値です。変更が必要な場合は環境変数から設定可能です。
-- 将来的なフォールバックとして、三菱UFJ AM の JSON API への対応を TODO コメントとして記載しています。
+## データソース
+- 基準価額データは [投信総合検索ライブラリー](https://toushin-lib.fwg.ne.jp/FdsWeb/) (投資信託協会) の CSV API を使用しています。
+- ISIN コード: `JP90C000H1T1` / ファンドコード: `0331418A`

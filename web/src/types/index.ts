@@ -15,15 +15,12 @@ export interface LatestNavData {
   changePercent: number | null;
 }
 
-/** Portfolio valuation */
-export interface ValuationData {
-  date: string;
-  nav: number;
-  totalUnits: number;
-  totalInvested: number;
-  currentValue: number;
-  profitLoss: number;
-  profitLossPercent: number;
+/** All-time peak drawdown */
+export interface AlltimePeakData {
+  peak: number;
+  peakDate: string;
+  drawdown: number;
+  drawdownPercent: number;
 }
 
 /** History record */
@@ -31,6 +28,14 @@ export interface NavHistoryRecord {
   date: string;
   nav: number;
   net_asset: number | null;
+}
+
+/** Drawdown from period peak */
+export interface DrawdownResult {
+  peak: number;
+  peakDate: string;
+  drawdown: number;
+  drawdownPercent: number;
 }
 
 /** Period options for chart */

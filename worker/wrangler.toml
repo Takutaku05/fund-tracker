@@ -14,6 +14,4 @@ database_id = "YOUR_D1_DATABASE_ID"  # wrangler d1 create fund-tracker-db で取
 
 # 環境変数
 [vars]
-FUND_CD = "253425"       # eMAXIS Slim 全世界株式のファンドコード（推定値・差し替え可能）
-TOTAL_UNITS = "150000"   # 保有口数（口）- 自分の保有数に変更してください
-TOTAL_INVESTED = "200000" # 投資総額（円）- 自分の投資額に変更してください
+FUND_CD = "253425"       # eMAXIS Slim 全世界株式（オール・カントリー）ファンドコード（現在未使用・ISIN: JP90C000H1T1）

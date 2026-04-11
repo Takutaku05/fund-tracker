@@ -1,14 +1,15 @@
 import React from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import type { NavHistoryRecord } from '../types';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import type { NavHistoryRecord, DrawdownResult } from '../types';
 import { formatCurrency, formatChartDate, formatFullDate } from '../lib/format';
 
 interface NavChartProps {
   data: NavHistoryRecord[];
+  drawdown?: DrawdownResult | null;
   loading?: boolean;
 }
 
-export const NavChart: React.FC<NavChartProps> = ({ data, loading }) => {
+export const NavChart: React.FC<NavChartProps> = ({ data, drawdown, loading }) => {
   if (data.length === 0 && !loading) {
     return (
       <div className="chart-wrapper" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -64,6 +65,14 @@ export const NavChart: React.FC<NavChartProps> = ({ data, loading }) => {
               '基準価額'
             ]}
           />
+          {drawdown && drawdown.drawdownPercent < 0 && (
+            <ReferenceLine
+              y={drawdown.peak}
+              stroke="#ef4444"
+              strokeDasharray="4 2"
+              label={{ value: `高値 ${formatCurrency(drawdown.peak)}`, position: 'insideTopRight', fill: '#ef4444', fontSize: 11 }}
+            />
+          )}
           <Area
             type="monotone"
             dataKey="nav"

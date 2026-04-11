@@ -14,11 +14,10 @@ export async function handleCronFetchNav(env: Env): Promise<void> {
 
     console.log(`[cron] Fetched ${rows.length} rows from eMAXIS`);
 
-    // 最新30日分を UPSERT（重複を防ぐ）
-    const recentRows = rows.slice(0, 30);
+    // 全件 UPSERT（重複を防ぐ）
     let inserted = 0;
 
-    for (const row of recentRows) {
+    for (const row of rows) {
       const result = await env.DB.prepare(
         `INSERT INTO nav_history (date, nav, net_asset)
          VALUES (?, ?, ?)

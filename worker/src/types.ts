@@ -3,8 +3,6 @@
 export interface Env {
   DB: D1Database;
   FUND_CD: string;
-  TOTAL_UNITS: string;
-  TOTAL_INVESTED: string;
 }
 
 /** A single NAV record from D1 */
@@ -40,15 +38,12 @@ export interface LatestNavResponse {
   changePercent: number | null;
 }
 
-/** Portfolio valuation */
-export interface ValuationResponse {
-  date: string;
-  nav: number;
-  totalUnits: number;
-  totalInvested: number;
-  currentValue: number;
-  profitLoss: number;
-  profitLossPercent: number;
+/** All-time peak drawdown */
+export interface AlltimePeakResponse {
+  peak: number;
+  peakDate: string;
+  drawdown: number;
+  drawdownPercent: number;
 }
 
 /** History query params */

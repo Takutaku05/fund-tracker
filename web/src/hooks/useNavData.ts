@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { fetchLatestNav, fetchValuation } from '../lib/api';
-import type { LatestNavData, ValuationData } from '../types';
+import { fetchLatestNav, fetchAlltimePeak } from '../lib/api';
+import type { LatestNavData, AlltimePeakData } from '../types';
 
 interface NavDataState {
   latestNav: LatestNavData | null;
-  valuation: ValuationData | null;
+  alltimePeak: AlltimePeakData | null;
   loading: boolean;
   error: string | null;
   refresh: () => void;
@@ -12,7 +12,7 @@ interface NavDataState {
 
 export function useNavData(): NavDataState {
   const [latestNav, setLatestNav] = useState<LatestNavData | null>(null);
-  const [valuation, setValuation] = useState<ValuationData | null>(null);
+  const [alltimePeak, setAlltimePeak] = useState<AlltimePeakData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,12 +21,12 @@ export function useNavData(): NavDataState {
     setError(null);
 
     try {
-      const [navData, valData] = await Promise.all([
+      const [navData, peakData] = await Promise.all([
         fetchLatestNav(),
-        fetchValuation(),
+        fetchAlltimePeak(),
       ]);
       setLatestNav(navData);
-      setValuation(valData);
+      setAlltimePeak(peakData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'データの取得に失敗しました');
     } finally {
@@ -38,5 +38,5 @@ export function useNavData(): NavDataState {
     load();
   }, [load]);
 
-  return { latestNav, valuation, loading, error, refresh: load };
+  return { latestNav, alltimePeak, loading, error, refresh: load };
 }
