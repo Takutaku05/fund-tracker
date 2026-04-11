@@ -22,6 +22,12 @@ Thumbs.db
 
 # Agent configs (local)
 .claude/settings.local.json
+.agents/
+.codex/
+.claude/
+.claude-plugin/
+.codex-plugin/
+CLAUDE.md
 
 # Logs
 *.log
