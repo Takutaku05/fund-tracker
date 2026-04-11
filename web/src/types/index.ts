@@ -54,3 +54,38 @@ export const PERIOD_OPTIONS: PeriodOption[] = [
   { value: 'year', label: '1Y' },
   { value: 'all', label: 'ALL' },
 ];
+
+/** Watchlist item */
+export interface WatchlistItem {
+  id: string;
+  symbol: string;
+  displayName: string;
+  enabled: boolean;
+  dropThresholdPct: number;
+  windowHours: number;
+  cooldownMinutes: number;
+  lastNotifiedAt: string | null;
+}
+
+export interface WatchlistInput {
+  symbol: string;
+  display_name: string;
+  drop_threshold_pct?: number;
+  window_hours?: number;
+  cooldown_minutes?: number;
+  enabled?: boolean;
+}
+
+/** Notification channel */
+export interface NotificationChannelItem {
+  id: string;
+  type: string;
+  enabled: boolean;
+  lastTestedAt: string | null;
+}
+
+export interface NotificationChannelInput {
+  webhook_url: string;
+  type?: string;
+  enabled?: boolean;
+}

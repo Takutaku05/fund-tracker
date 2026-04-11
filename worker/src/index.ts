@@ -4,7 +4,11 @@ import type { Env } from './types';
 import navRoutes from './routes/nav';
 import historyRoutes from './routes/history';
 import healthRoutes from './routes/health';
+import watchlistRoutes from './routes/watchlists';
+import channelRoutes from './routes/notification-channels';
+import authRoutes from './routes/auth';
 import { handleCronFetchNav } from './cron/fetch-nav';
+import { handleCronCheckAlerts } from './cron/check-alerts';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -12,16 +16,20 @@ const app = new Hono<{ Bindings: Env }>();
 app.use(
   '/api/*',
   cors({
-    origin: '*', // デプロイ後は Pages の URL に制限可能
-    allowMethods: ['GET', 'OPTIONS'],
+    origin: (origin) => origin || '*', // credentialed requests need explicit origin
+    allowMethods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type'],
+    credentials: true,
   })
 );
 
 // Routes
+app.route('/api/auth', authRoutes);
 app.route('/api/nav', navRoutes);
 app.route('/api/history', historyRoutes);
 app.route('/api/health', healthRoutes);
+app.route('/api/settings/watchlists', watchlistRoutes);
+app.route('/api/settings/notification-channels', channelRoutes);
 
 // Dev only - seed database trigger
 app.get('/api/dev/seed', async (c) => {
@@ -39,10 +47,19 @@ app.get('/', (c) => {
     name: 'fund-tracker-worker',
     version: '1.0.0',
     endpoints: [
+      'GET /api/auth/login',
+      'GET /api/auth/callback',
+      'GET /api/auth/me',
+      'POST /api/auth/logout',
       'GET /api/nav/latest',
       'GET /api/nav/alltime-peak',
       'GET /api/history?period=month',
       'GET /api/health',
+      'GET|POST /api/settings/watchlists',
+      'PATCH|DELETE /api/settings/watchlists/:id',
+      'GET|POST /api/settings/notification-channels',
+      'PATCH /api/settings/notification-channels/:id',
+      'POST /api/settings/notification-channels/:id/test',
     ],
   });
 });
@@ -53,6 +70,8 @@ export default {
 
   // Cron Trigger handler
   async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
-    ctx.waitUntil(handleCronFetchNav(env));
+    ctx.waitUntil(
+      handleCronFetchNav(env).then(() => handleCronCheckAlerts(env))
+    );
   },
 };

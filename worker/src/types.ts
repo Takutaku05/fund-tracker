@@ -3,6 +3,11 @@
 export interface Env {
   DB: D1Database;
   FUND_CD: string;
+  ENCRYPTION_KEY: string;       // Webhook URL暗号化用（Cloudflare Secret）
+  GOOGLE_CLIENT_ID: string;     // Google OAuth Client ID
+  GOOGLE_CLIENT_SECRET: string; // Google OAuth Client Secret（Cloudflare Secret）
+  APP_BASE_URL: string;         // アプリのベースURL（例: https://fund-tracker.example.com）
+  PRICE_API_KEY?: string;       // 外部価格API用（必要に応じて）
 }
 
 /** A single NAV record from D1 */

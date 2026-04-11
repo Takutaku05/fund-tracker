@@ -1,4 +1,14 @@
-import type { ApiResponse, LatestNavData, AlltimePeakData, NavHistoryRecord, Period } from '../types';
+import type {
+  ApiResponse,
+  LatestNavData,
+  AlltimePeakData,
+  NavHistoryRecord,
+  Period,
+  WatchlistItem,
+  WatchlistInput,
+  NotificationChannelItem,
+  NotificationChannelInput,
+} from '../types';
 
 /**
  * API ベース URL
@@ -6,20 +16,35 @@ import type { ApiResponse, LatestNavData, AlltimePeakData, NavHistoryRecord, Per
  */
 const API_BASE = import.meta.env.VITE_API_BASE || '';
 
-async function fetchApi<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`);
+async function fetchApi<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`${API_BASE}${path}`, {
+    credentials: 'include',
+    ...init,
+    headers: {
+      'Content-Type': 'application/json',
+      ...init?.headers,
+    },
+  });
 
   if (!response.ok) {
-    throw new Error(`API error: ${response.status}`);
+    const body = await response.json().catch(() => ({})) as ApiResponse<unknown>;
+    throw new Error((body as ApiResponse<unknown>).error || `API error: ${response.status}`);
   }
 
   const json: ApiResponse<T> = await response.json();
 
-  if (!json.success || !json.data) {
+  if (!json.success) {
     throw new Error(json.error || 'Unknown error');
   }
 
-  return json.data;
+  return json.data as T;
+}
+
+async function mutateApi<T>(method: string, path: string, body?: unknown): Promise<T> {
+  return fetchApi<T>(path, {
+    method,
+    body: body ? JSON.stringify(body) : undefined,
+  });
 }
 
 export function fetchLatestNav(): Promise<LatestNavData> {
@@ -36,4 +61,40 @@ export function fetchHistory(period: Period): Promise<NavHistoryRecord[]> {
 
 export function fetchHealth(): Promise<{ status: string; records: number; timestamp: string }> {
   return fetchApi('/api/health');
+}
+
+// --- Watchlists ---
+
+export function fetchWatchlists(): Promise<WatchlistItem[]> {
+  return fetchApi<WatchlistItem[]>('/api/settings/watchlists');
+}
+
+export function createWatchlist(input: WatchlistInput): Promise<WatchlistItem> {
+  return mutateApi<WatchlistItem>('POST', '/api/settings/watchlists', input);
+}
+
+export function updateWatchlist(id: string, input: Partial<WatchlistInput>): Promise<WatchlistItem> {
+  return mutateApi<WatchlistItem>('PATCH', `/api/settings/watchlists/${id}`, input);
+}
+
+export function deleteWatchlist(id: string): Promise<void> {
+  return mutateApi<void>('DELETE', `/api/settings/watchlists/${id}`);
+}
+
+// --- Notification Channels ---
+
+export function fetchChannels(): Promise<NotificationChannelItem[]> {
+  return fetchApi<NotificationChannelItem[]>('/api/settings/notification-channels');
+}
+
+export function createChannel(input: NotificationChannelInput): Promise<NotificationChannelItem> {
+  return mutateApi<NotificationChannelItem>('POST', '/api/settings/notification-channels', input);
+}
+
+export function updateChannel(id: string, input: Partial<NotificationChannelInput>): Promise<NotificationChannelItem> {
+  return mutateApi<NotificationChannelItem>('PATCH', `/api/settings/notification-channels/${id}`, input);
+}
+
+export function testChannel(id: string): Promise<{ sent: boolean }> {
+  return mutateApi<{ sent: boolean }>('POST', `/api/settings/notification-channels/${id}/test`);
 }

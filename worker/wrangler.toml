@@ -11,7 +11,18 @@ crons = ["0 9 * * *"]
 binding = "DB"
 database_name = "fund-tracker-db"
 database_id = "YOUR_D1_DATABASE_ID"  # wrangler d1 create fund-tracker-db で取得したIDに差し替え
+migrations_dir = "src/db/migrations"
 
 # 環境変数
 [vars]
 FUND_CD = "253425"       # eMAXIS Slim 全世界株式（オール・カントリー）ファンドコード（現在未使用・ISIN: JP90C000H1T1）
+DEFAULT_DROP_THRESHOLD = "5"
+DEFAULT_WINDOW_HOURS = "24"
+DEFAULT_COOLDOWN_MINUTES = "180"
+APP_BASE_URL = "http://localhost:5173"  # デプロイ後は本番URLに変更
+
+# Secrets (wrangler secret put で設定):
+#   ENCRYPTION_KEY       — Webhook URL暗号化用キー
+#   GOOGLE_CLIENT_ID     — Google OAuth Client ID
+#   GOOGLE_CLIENT_SECRET — Google OAuth Client Secret
+#   PRICE_API_KEY        — 外部価格API用（必要に応じて）
