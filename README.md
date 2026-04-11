@@ -33,6 +33,11 @@ npm run db:init
 npm run dev
 ```
 
+ローカル DB を手動で更新したい場合は、Worker 起動中に以下を実行してください:
+```bash
+curl http://localhost:8787/api/dev/seed
+```
+
 ### 2. フロントエンド (Web) の起動
 新しいターミナルを開き、フロントエンドを起動します:
 ```bash
