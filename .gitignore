@@ -31,3 +31,6 @@ CLAUDE.md
 
 # Logs
 *.log
+
+# TypeScript
+*.tsbuildinfo
