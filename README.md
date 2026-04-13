@@ -50,33 +50,93 @@ npm run dev
 
 ## デプロイ方法
 
-### 1. Cloudflare D1
+### 前提条件
+- [Cloudflare アカウント](https://dash.cloudflare.com/sign-up)
+- Wrangler CLI（`worker/node_modules` に含まれる）
+- `npx wrangler login` で認証済みであること
+
+### 1. D1 データベースの作成とスキーマ適用
+
 ```bash
 cd worker
-# D1 データベースを作成 (初回のみ)
+
+# D1 データベースを作成（初回のみ）
 npx wrangler d1 create fund-tracker-db
-
-# 出力された database_id を wrangler.toml に反映
-
-# リモート DB を初期化
-npm run db:init:remote
 ```
 
-### 2. Cloudflare Workers
+出力される `database_id` を `worker/wrangler.toml` の以下の箇所に反映します:
+
+```toml
+[[d1_databases]]
+binding = "DB"
+database_name = "fund-tracker-db"
+database_id = "<ここに出力された ID を貼り付け>"
+```
+
+スキーマとマイグレーションをリモート DB に適用します:
+
+```bash
+# 初期スキーマ
+npm run db:init:remote
+
+# マイグレーション
+npx wrangler d1 migrations apply fund-tracker-db --remote
+```
+
+### 2. Workers のシークレット設定
+
+`wrangler.toml` の `[vars]` に含まれない機密情報を設定します:
+
 ```bash
 cd worker
+npx wrangler secret put ENCRYPTION_KEY
+npx wrangler secret put GOOGLE_CLIENT_ID
+npx wrangler secret put GOOGLE_CLIENT_SECRET
+```
+
+プロンプトが表示されるので、それぞれの値を入力してください。
+
+### 3. Workers のデプロイ
+
+```bash
+cd worker
+
+# wrangler.toml の APP_BASE_URL を本番 Pages URL に変更してからデプロイ
 npm run deploy
 ```
 
-### 3. Cloudflare Pages
-1. Cloudflare Pages ダッシュボードから「Create a project」>「Connect to Git」を選択
+デプロイが完了すると Worker の URL が表示されます（例: `https://fund-tracker-worker.<your-subdomain>.workers.dev`）。
+
+Cron Trigger（毎日 09:00 UTC / 18:00 JST）は `wrangler.toml` の設定に基づいて自動的に登録されます。
+
+### 4. Pages（フロントエンド）のデプロイ
+
+#### 方法 A: Cloudflare ダッシュボードから Git 連携
+
+1. [Cloudflare ダッシュボード](https://dash.cloudflare.com/) > **Workers & Pages** > **Create** > **Pages** > **Connect to Git**
 2. このリポジトリを選択
-3. ビルド設定
-   - Framework preset: `Vite`
-   - Build command: `npm run build` (ルートではないので `cd web && npm run build` にする等の工夫が必要、または monorepo 対応の設定)
-   - Build output directory: `dist`
-4. 環境変数設定
-   - `VITE_API_BASE`: デプロイされた Worker の URL (例: `https://fund-tracker-worker.your-subdomain.workers.dev`)
+3. ビルド設定:
+   - **Framework preset**: `None`
+   - **Root directory**: `web`
+   - **Build command**: `npm install && npm run build`
+   - **Build output directory**: `dist`
+4. 環境変数:
+   - `VITE_API_BASE` = デプロイ済み Worker の URL（例: `https://fund-tracker-worker.<your-subdomain>.workers.dev`）
+
+#### 方法 B: CLI から直接デプロイ
+
+```bash
+cd web
+npm install
+VITE_API_BASE=https://fund-tracker-worker.<your-subdomain>.workers.dev npm run build
+npx wrangler pages deploy dist --project-name=fund-tracker-web
+```
+
+### 5. デプロイ後の確認
+
+1. Pages の URL にアクセスし、チャートと下落率カードが表示されることを確認
+2. Cloudflare ダッシュボード > **Workers & Pages** > `fund-tracker-worker` > **Triggers** で Cron が登録されていることを確認
+3. 初回はデータが空のため、Worker の `/api/dev/seed` エンドポイントを叩いて初期データを投入（本番環境では Cron による自動取得を待つか、手動で実行）
 
 ## データソース
 - 基準価額データは [投信総合検索ライブラリー](https://toushin-lib.fwg.ne.jp/FdsWeb/) (投資信託協会) の CSV API を使用しています。
