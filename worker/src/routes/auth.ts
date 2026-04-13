@@ -126,7 +126,7 @@ auth.get('/callback', async (c) => {
   const resHeaders = new Headers();
   resHeaders.append('Set-Cookie', makeSessionCookie(sessionId));
   resHeaders.append('Set-Cookie', 'ft_oauth_state=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0');
-  resHeaders.set('Location', c.env.APP_BASE_URL || '/');
+  resHeaders.set('Location', c.env.FRONTEND_URL || c.env.APP_BASE_URL || '/');
 
   return new Response(null, { status: 302, headers: resHeaders });
 });

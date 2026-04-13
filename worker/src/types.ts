@@ -6,7 +6,8 @@ export interface Env {
   ENCRYPTION_KEY: string;       // Webhook URL暗号化用（Cloudflare Secret）
   GOOGLE_CLIENT_ID: string;     // Google OAuth Client ID
   GOOGLE_CLIENT_SECRET: string; // Google OAuth Client Secret（Cloudflare Secret）
-  APP_BASE_URL: string;         // アプリのベースURL（例: https://fund-tracker.example.com）
+  APP_BASE_URL: string;         // Worker自身のベースURL（OAuth redirect_uri用）
+  FRONTEND_URL: string;         // フロントエンド（Pages）のURL（ログイン後リダイレクト用）
   PRICE_API_KEY?: string;       // 外部価格API用（必要に応じて）
 }
 

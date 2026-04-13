@@ -10,7 +10,7 @@ crons = ["0 9 * * *"]
 [[d1_databases]]
 binding = "DB"
 database_name = "fund-tracker-db"
-database_id = "YOUR_D1_DATABASE_ID"  # wrangler d1 create fund-tracker-db で取得したIDに差し替え
+database_id = "2c21a047-00a1-41b3-9333-05ef2d3d5909"  # wrangler d1 create fund-tracker-db で取得したIDに差し替え
 migrations_dir = "src/db/migrations"
 
 # 環境変数
@@ -19,7 +19,8 @@ FUND_CD = "253425"       # eMAXIS Slim 全世界株式（オール・カント�
 DEFAULT_DROP_THRESHOLD = "5"
 DEFAULT_WINDOW_HOURS = "24"
 DEFAULT_COOLDOWN_MINUTES = "180"
-APP_BASE_URL = "http://localhost:5173"  # デプロイ後は本番URLに変更
+APP_BASE_URL = "https://fund-tracker-worker.takuto-cocoa1911.workers.dev"
+FRONTEND_URL = "https://fund-tracker-web-awo.pages.dev"
 
 # Secrets (wrangler secret put で設定):
 #   ENCRYPTION_KEY       — Webhook URL暗号化用キー

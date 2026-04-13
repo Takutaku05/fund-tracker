@@ -16,7 +16,12 @@ const app = new Hono<{ Bindings: Env }>();
 app.use(
   '/api/*',
   cors({
-    origin: (origin) => origin || '*', // credentialed requests need explicit origin
+    origin: (origin, c) => {
+      const frontend = c.env.FRONTEND_URL;
+      // 開発時は localhost を許可、本番は FRONTEND_URL のみ
+      const allowed = [frontend, 'http://localhost:5173'].filter(Boolean);
+      return allowed.includes(origin) ? origin : frontend;
+    },
     allowMethods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type'],
     credentials: true,

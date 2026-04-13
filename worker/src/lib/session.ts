@@ -73,16 +73,15 @@ export function getSessionIdFromCookie(cookieHeader: string | undefined): string
 /**
  * セッション Cookie の Set-Cookie ヘッダー値を生成する
  */
-export function makeSessionCookie(sessionId: string, domain?: string): string {
+export function makeSessionCookie(sessionId: string): string {
   const parts = [
     `${SESSION_COOKIE}=${sessionId}`,
     `Path=/`,
     `HttpOnly`,
     `Secure`,
-    `SameSite=Lax`,
+    `SameSite=None`,
     `Max-Age=${SESSION_MAX_AGE}`,
   ];
-  if (domain) parts.push(`Domain=${domain}`);
   return parts.join('; ');
 }
 
@@ -90,5 +89,5 @@ export function makeSessionCookie(sessionId: string, domain?: string): string {
  * セッション Cookie を削除する Set-Cookie ヘッダー値
  */
 export function makeClearSessionCookie(): string {
-  return `${SESSION_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
+  return `${SESSION_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=0`;
 }
