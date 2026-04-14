@@ -2,9 +2,9 @@ name = "fund-tracker-worker"
 main = "src/index.ts"
 compatibility_date = "2025-04-01"
 
-# Cron Trigger: 毎日 18:00 JST = 09:00 UTC
+# Cron Trigger: 毎日 03:00 JST = 18:00 UTC
 [triggers]
-crons = ["0 9 * * *"]
+crons = ["0 18 * * *"]
 
 # D1 Database
 [[d1_databases]]

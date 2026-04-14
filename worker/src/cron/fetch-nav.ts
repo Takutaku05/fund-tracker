@@ -3,7 +3,7 @@ import { fetchNavFromEmaxis } from '../lib/emaxis';
 
 /**
  * Cron Trigger ハンドラ
- * 毎日 18:00 JST (09:00 UTC) に実行され、eMAXIS CSV API から基準価額を取得して D1 に保存する
+ * 毎日 03:00 JST (18:00 UTC) に実行され、eMAXIS CSV API から基準価額を取得して D1 に保存する
  */
 export async function handleCronFetchNav(env: Env): Promise<void> {
   console.log('[cron] Starting NAV fetch...');
