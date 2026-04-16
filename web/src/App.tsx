@@ -138,7 +138,7 @@ export const App: React.FC = () => {
 
               <PeriodTabs options={PERIOD_OPTIONS} value={period} onChange={setPeriod} />
 
-              <div className="grid grid-cols-2" style={{ marginTop: '1rem', marginBottom: '1rem', gap: '1rem' }}>
+              <div className="grid grid-cols-3" style={{ marginTop: '1rem', marginBottom: '1rem', gap: '1rem' }}>
                 <ValueCard
                   label="期間高値"
                   value={drawdown ? formatCurrency(drawdown.peak) : '—'}
@@ -149,6 +149,12 @@ export const App: React.FC = () => {
                   value={drawdown ? formatPercent(drawdown.drawdownPercent) : '—'}
                   subValue={drawdown && drawdown.drawdown !== 0 ? formatSignedCurrency(drawdown.drawdown) : undefined}
                   isPositive={drawdown ? drawdown.drawdownPercent >= 0 : null}
+                />
+                <ValueCard
+                  label="期間ピーク上昇率"
+                  value={drawdown ? formatPercent(drawdown.gainPercent) : '—'}
+                  subValue={drawdown && drawdown.gain !== 0 ? formatSignedCurrency(drawdown.gain) : undefined}
+                  isPositive={drawdown ? drawdown.gainPercent >= 0 : null}
                 />
               </div>
 

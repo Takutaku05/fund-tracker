@@ -36,6 +36,10 @@ export interface DrawdownResult {
   peakDate: string;
   drawdown: number;
   drawdownPercent: number;
+  trough: number;
+  troughDate: string;
+  gain: number;
+  gainPercent: number;
 }
 
 /** Period options for chart */
