@@ -14,7 +14,8 @@ interface HistoryDataState {
 
 export function useHistoryData(
   initialPeriod: Period = 'month',
-  currentNav?: number
+  currentNav?: number,
+  fundId?: string
 ): HistoryDataState {
   const [history, setHistory] = useState<NavHistoryRecord[]>([]);
   const [drawdown, setDrawdown] = useState<DrawdownResult | null>(null);
@@ -27,15 +28,15 @@ export function useHistoryData(
     setError(null);
 
     try {
-      const data = await fetchHistory(period);
-      setHistory(data);
-      setDrawdown(currentNav != null ? calculateDrawdown(data, currentNav) : null);
+      const payload = await fetchHistory(period, fundId);
+      setHistory(payload.rows);
+      setDrawdown(currentNav != null ? calculateDrawdown(payload.rows, currentNav) : null);
     } catch (err) {
       setError(err instanceof Error ? err.message : '履歴データの取得に失敗しました');
     } finally {
       setLoading(false);
     }
-  }, [period, currentNav]);
+  }, [period, currentNav, fundId]);
 
   useEffect(() => {
     load();

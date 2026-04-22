@@ -2,7 +2,7 @@ import type {
   ApiResponse,
   LatestNavData,
   AlltimePeakData,
-  NavHistoryRecord,
+  HistoryPayload,
   Period,
   WatchlistItem,
   WatchlistInput,
@@ -47,16 +47,22 @@ async function mutateApi<T>(method: string, path: string, body?: unknown): Promi
   });
 }
 
-export function fetchLatestNav(): Promise<LatestNavData> {
-  return fetchApi<LatestNavData>('/api/nav/latest');
+function withFund(path: string, fundId?: string): string {
+  if (!fundId) return path;
+  const sep = path.includes('?') ? '&' : '?';
+  return `${path}${sep}fundId=${encodeURIComponent(fundId)}`;
 }
 
-export function fetchAlltimePeak(): Promise<AlltimePeakData> {
-  return fetchApi<AlltimePeakData>('/api/nav/alltime-peak');
+export function fetchLatestNav(fundId?: string): Promise<LatestNavData> {
+  return fetchApi<LatestNavData>(withFund('/api/nav/latest', fundId));
 }
 
-export function fetchHistory(period: Period): Promise<NavHistoryRecord[]> {
-  return fetchApi<NavHistoryRecord[]>(`/api/history?period=${period}`);
+export function fetchAlltimePeak(fundId?: string): Promise<AlltimePeakData> {
+  return fetchApi<AlltimePeakData>(withFund('/api/nav/alltime-peak', fundId));
+}
+
+export function fetchHistory(period: Period, fundId?: string): Promise<HistoryPayload> {
+  return fetchApi<HistoryPayload>(withFund(`/api/history?period=${period}`, fundId));
 }
 
 export function fetchHealth(): Promise<{ status: string; records: number; timestamp: string }> {

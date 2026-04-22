@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
-import type { Env, ApiResponse, NavRecord, HistoryQuery } from '../types';
+import type { Env, ApiResponse, NavRecord, HistoryResponse } from '../types';
+import { loadFund, toFundMeta } from '../lib/funds';
 
 const history = new Hono<{ Bindings: Env }>();
 
@@ -26,23 +27,23 @@ function getDateFromPeriod(period: string): string {
       break;
     case 'all':
     default:
-      return '2000-01-01'; // 十分古い日付
+      return '2000-01-01';
   }
 
   return now.toISOString().split('T')[0];
 }
 
 /**
- * GET /api/history
- * 基準価額の履歴データを返す
- *
- * Query params:
- *   period: week | month | 3month | 6month | year | all
- *   from: YYYY-MM-DD (custom range)
- *   to: YYYY-MM-DD (custom range)
+ * GET /api/history?fundId=emaxis-ac&period=month
  */
 history.get('/', async (c) => {
   try {
+    const fundId = c.req.query('fundId') || c.env.DEFAULT_FUND_ID;
+    const fund = await loadFund(c.env.DB, fundId);
+    if (!fund) {
+      return c.json<ApiResponse<null>>({ success: false, error: `Unknown fundId: ${fundId}` }, 404);
+    }
+
     const period = c.req.query('period') || 'month';
     const fromDate = c.req.query('from') || getDateFromPeriod(period);
     const toDate = c.req.query('to') || new Date().toISOString().split('T')[0];
@@ -50,24 +51,24 @@ history.get('/', async (c) => {
     const rows = await c.env.DB.prepare(
       `SELECT date, nav, net_asset
        FROM nav_history
-       WHERE date >= ? AND date <= ?
+       WHERE fund_id = ? AND date >= ? AND date <= ?
        ORDER BY date ASC`
     )
-      .bind(fromDate, toDate)
+      .bind(fundId, fromDate, toDate)
       .all();
 
     const data = (rows.results || []) as unknown as NavRecord[];
 
-    return c.json<ApiResponse<NavRecord[]>>({
+    return c.json<ApiResponse<HistoryResponse>>({
       success: true,
-      data,
+      data: {
+        fund: toFundMeta(fund),
+        rows: data,
+      },
     });
   } catch (error) {
     console.error('[history] Error:', error);
-    return c.json<ApiResponse<null>>({
-      success: false,
-      error: 'Internal server error',
-    }, 500);
+    return c.json<ApiResponse<null>>({ success: false, error: 'Internal server error' }, 500);
   }
 });
 

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavData } from './hooks/useNavData';
 import { useHistoryData } from './hooks/useHistoryData';
 import { useAuth } from './hooks/useAuth';
+import { useFundId } from './hooks/useFundId';
 import { ValueCard } from './components/ValueCard';
 import { NavChart } from './components/NavChart';
 import { PeriodTabs } from './components/PeriodTabs';
@@ -23,6 +24,7 @@ type Page = 'dashboard' | 'settings';
 export const App: React.FC = () => {
   const [page, setPage] = useState<Page>('dashboard');
   const { user, loading: authLoading, login, logout } = useAuth();
+  const fundId = useFundId();
 
   const {
     latestNav,
@@ -30,7 +32,7 @@ export const App: React.FC = () => {
     loading: navLoading,
     error: navError,
     refresh: refreshNav
-  } = useNavData();
+  } = useNavData(fundId);
 
   const {
     history,
@@ -39,7 +41,7 @@ export const App: React.FC = () => {
     setPeriod,
     loading: historyLoading,
     error: historyError
-  } = useHistoryData('month', latestNav?.nav);
+  } = useHistoryData('month', latestNav?.nav, fundId);
 
   const isLoading = navLoading || authLoading;
   const error = navError || historyError;
@@ -60,7 +62,7 @@ export const App: React.FC = () => {
         <div className="header-top">
           <div>
             <h1>Fund Tracker</h1>
-            <p className="subtitle">eMAXIS Slim 全世界株式（オール・カントリー）</p>
+            <p className="subtitle">{latestNav?.fund.nameJa ?? ' '}</p>
           </div>
           <div className="auth-area">
             {user ? (

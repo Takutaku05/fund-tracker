@@ -16,6 +16,7 @@ function toResponse(row: Watchlist): WatchlistResponse {
     id: row.id,
     symbol: row.symbol,
     displayName: row.display_name,
+    fundId: row.fund_id,
     enabled: row.enabled === 1,
     dropThresholdPct: row.drop_threshold_pct,
     windowHours: row.window_hours,
@@ -56,15 +57,23 @@ watchlists.post('/', async (c) => {
       return c.json<ApiResponse<null>>({ success: false, error: 'symbol and display_name are required' }, 400);
     }
 
+    const fundId = body.fund_id ?? c.env.DEFAULT_FUND_ID;
+    // fund_id の存在チェック（未登録の銘柄は弾く）
+    const fundRow = await c.env.DB.prepare('SELECT id FROM funds WHERE id = ?').bind(fundId).first();
+    if (!fundRow) {
+      return c.json<ApiResponse<null>>({ success: false, error: `Unknown fundId: ${fundId}` }, 400);
+    }
+
     const id = crypto.randomUUID();
     await c.env.DB.prepare(
-      `INSERT INTO watchlists (id, user_id, symbol, display_name, enabled, drop_threshold_pct, window_hours, cooldown_minutes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO watchlists (id, user_id, symbol, display_name, fund_id, enabled, drop_threshold_pct, window_hours, cooldown_minutes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       id,
       user.id,
       body.symbol,
       body.display_name,
+      fundId,
       body.enabled !== false ? 1 : 0,
       body.drop_threshold_pct ?? 5.0,
       body.window_hours ?? 24,
