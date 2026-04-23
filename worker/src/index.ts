@@ -4,6 +4,7 @@ import type { Env } from './types';
 import navRoutes from './routes/nav';
 import historyRoutes from './routes/history';
 import healthRoutes from './routes/health';
+import fundsRoutes from './routes/funds';
 import watchlistRoutes from './routes/watchlists';
 import channelRoutes from './routes/notification-channels';
 import authRoutes from './routes/auth';
@@ -33,6 +34,7 @@ app.route('/api/auth', authRoutes);
 app.route('/api/nav', navRoutes);
 app.route('/api/history', historyRoutes);
 app.route('/api/health', healthRoutes);
+app.route('/api/funds', fundsRoutes);
 app.route('/api/settings/watchlists', watchlistRoutes);
 app.route('/api/settings/notification-channels', channelRoutes);
 
@@ -60,6 +62,7 @@ app.get('/', (c) => {
       'GET /api/nav/alltime-peak',
       'GET /api/history?period=month',
       'GET /api/health',
+      'GET /api/funds',
       'GET|POST /api/settings/watchlists',
       'PATCH|DELETE /api/settings/watchlists/:id',
       'GET|POST /api/settings/notification-channels',

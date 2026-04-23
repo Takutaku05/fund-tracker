@@ -29,6 +29,17 @@ VALUES (
 
 -- 3. nav_history を再構築（PK: (fund_id, date)）
 --    SQLite は PK 変更不可なのでテーブル作り直し。既存レコードは 'emaxis-ac' に backfill。
+--    新規 DB（nav_history 未作成）でもエラーにならないよう、旧スキーマを IF NOT EXISTS で確保。
+
+-- 旧テーブルが無い場合（新規 DB）は空テーブルとして作成。既存 DB では no-op。
+CREATE TABLE IF NOT EXISTS nav_history (
+  date       TEXT PRIMARY KEY,
+  nav        INTEGER NOT NULL,
+  net_asset  INTEGER,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- 新スキーマのテーブルを作成
 CREATE TABLE nav_history_new (
   fund_id    TEXT NOT NULL,
   date       TEXT NOT NULL,
@@ -39,6 +50,7 @@ CREATE TABLE nav_history_new (
   FOREIGN KEY (fund_id) REFERENCES funds(id)
 );
 
+-- 既存データを backfill（新規 DB では 0 件）
 INSERT INTO nav_history_new (fund_id, date, nav, net_asset, created_at)
 SELECT 'emaxis-ac', date, nav, net_asset, created_at FROM nav_history;
 
