@@ -6,6 +6,7 @@ import { useFundId } from './hooks/useFundId';
 import { ValueCard } from './components/ValueCard';
 import { NavChart } from './components/NavChart';
 import { PeriodTabs } from './components/PeriodTabs';
+import { FundSelector } from './components/FundSelector';
 import { LoadingState, ErrorState } from './components/States';
 import { SettingsPage } from './components/SettingsPage';
 import { PERIOD_OPTIONS } from './types';
@@ -24,7 +25,7 @@ type Page = 'dashboard' | 'settings';
 export const App: React.FC = () => {
   const [page, setPage] = useState<Page>('dashboard');
   const { user, loading: authLoading, login, logout } = useAuth();
-  const fundId = useFundId();
+  const [fundId, setFundId] = useFundId();
 
   const {
     latestNav,
@@ -62,7 +63,10 @@ export const App: React.FC = () => {
         <div className="header-top">
           <div>
             <h1>Fund Tracker</h1>
-            <p className="subtitle">{latestNav?.fund.nameJa ?? ' '}</p>
+            <div className="fund-heading-row">
+              <FundSelector fundId={fundId} onChange={setFundId} />
+              <p className="subtitle">{latestNav?.fund.nameJa ?? ' '}</p>
+            </div>
           </div>
           <div className="auth-area">
             {user ? (
