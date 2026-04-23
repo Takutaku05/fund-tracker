@@ -21,6 +21,7 @@ export interface Watchlist {
   window_hours: number;
   cooldown_minutes: number;
   last_notified_at: string | null;
+  fund_id: string | null; // 紐付く銘柄（funds.id）。NULL の場合は価格データなし扱い
   created_at: string;
   updated_at: string;
 }
@@ -62,6 +63,7 @@ export interface AlertEvent {
 export interface WatchlistInput {
   symbol: string;
   display_name: string;
+  fund_id?: string;
   drop_threshold_pct?: number;
   window_hours?: number;
   cooldown_minutes?: number;
@@ -72,6 +74,7 @@ export interface WatchlistResponse {
   id: string;
   symbol: string;
   displayName: string;
+  fundId: string | null;
   enabled: boolean;
   dropThresholdPct: number;
   windowHours: number;

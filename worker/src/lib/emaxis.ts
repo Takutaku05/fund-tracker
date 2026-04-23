@@ -1,11 +1,12 @@
 import type { ParsedNavRow } from '../types';
 
 // 投資信託協会 投信総合検索ライブラリー CSV API
-// ISIN: JP90C000H1T1 = eMAXIS Slim 全世界株式（オール・カントリー）
-// associFundCd: 0331418A
-const TOUSHIN_CSV_URL =
-  'https://toushin-lib.fwg.ne.jp/FdsWeb/FDST030000/csv-file-download' +
-  '?isinCd=JP90C000H1T1&associFundCd=0331418A';
+const TOUSHIN_CSV_BASE = 'https://toushin-lib.fwg.ne.jp/FdsWeb/FDST030000/csv-file-download';
+
+export interface ToushinLibParams {
+  isinCd: string;
+  associFundCd: string;
+}
 
 /**
  * 投信総合検索ライブラリーから基準価額 CSV を取得してパースする
@@ -14,8 +15,9 @@ const TOUSHIN_CSV_URL =
  *   年月日,基準価額(円),純資産総額（百万円）,分配金,決算期
  *   2018年10月31日,10000,10,,
  */
-export async function fetchNavFromEmaxis(_fundCd: string): Promise<ParsedNavRow[]> {
-  const res = await fetch(TOUSHIN_CSV_URL);
+export async function fetchNavFromToushinLib(params: ToushinLibParams): Promise<ParsedNavRow[]> {
+  const url = `${TOUSHIN_CSV_BASE}?isinCd=${encodeURIComponent(params.isinCd)}&associFundCd=${encodeURIComponent(params.associFundCd)}`;
+  const res = await fetch(url);
   if (!res.ok) {
     throw new Error(`toushin-lib CSV fetch failed: ${res.status} ${res.statusText}`);
   }

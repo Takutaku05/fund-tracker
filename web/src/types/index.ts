@@ -5,8 +5,19 @@ export interface ApiResponse<T> {
   error?: string;
 }
 
+/** 対応銘柄のメタ情報 */
+export interface FundMeta {
+  id: string;
+  nameJa: string;
+  nameEn: string | null;
+  isin: string | null;
+  currency: string;
+  unitLabel: string | null;
+}
+
 /** Latest NAV data */
 export interface LatestNavData {
+  fund: FundMeta;
   date: string;
   nav: number;
   netAsset: number | null;
@@ -17,6 +28,7 @@ export interface LatestNavData {
 
 /** All-time peak drawdown */
 export interface AlltimePeakData {
+  fund: FundMeta;
   peak: number;
   peakDate: string;
   drawdown: number;
@@ -28,6 +40,12 @@ export interface NavHistoryRecord {
   date: string;
   nav: number;
   net_asset: number | null;
+}
+
+/** History payload */
+export interface HistoryPayload {
+  fund: FundMeta;
+  rows: NavHistoryRecord[];
 }
 
 /** Drawdown from period peak */
@@ -64,6 +82,7 @@ export interface WatchlistItem {
   id: string;
   symbol: string;
   displayName: string;
+  fundId: string | null;
   enabled: boolean;
   dropThresholdPct: number;
   windowHours: number;
@@ -74,6 +93,7 @@ export interface WatchlistItem {
 export interface WatchlistInput {
   symbol: string;
   display_name: string;
+  fund_id?: string;
   drop_threshold_pct?: number;
   window_hours?: number;
   cooldown_minutes?: number;

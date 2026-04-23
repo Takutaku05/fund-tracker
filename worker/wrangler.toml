@@ -15,7 +15,7 @@ migrations_dir = "src/db/migrations"
 
 # 環境変数
 [vars]
-FUND_CD = "253425"       # eMAXIS Slim 全世界株式（オール・カントリー）ファンドコード（現在未使用・ISIN: JP90C000H1T1）
+DEFAULT_FUND_ID = "emaxis-ac"  # 銘柄未指定時のフォールバック（funds.id）
 DEFAULT_DROP_THRESHOLD = "5"
 DEFAULT_WINDOW_HOURS = "24"
 DEFAULT_COOLDOWN_MINUTES = "180"

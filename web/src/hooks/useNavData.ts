@@ -10,7 +10,7 @@ interface NavDataState {
   refresh: () => void;
 }
 
-export function useNavData(): NavDataState {
+export function useNavData(fundId?: string): NavDataState {
   const [latestNav, setLatestNav] = useState<LatestNavData | null>(null);
   const [alltimePeak, setAlltimePeak] = useState<AlltimePeakData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -22,8 +22,8 @@ export function useNavData(): NavDataState {
 
     try {
       const [navData, peakData] = await Promise.all([
-        fetchLatestNav(),
-        fetchAlltimePeak(),
+        fetchLatestNav(fundId),
+        fetchAlltimePeak(fundId),
       ]);
       setLatestNav(navData);
       setAlltimePeak(peakData);
@@ -32,7 +32,7 @@ export function useNavData(): NavDataState {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fundId]);
 
   useEffect(() => {
     load();

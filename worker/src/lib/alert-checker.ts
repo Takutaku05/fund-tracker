@@ -11,21 +11,16 @@ export interface PriceData {
 }
 
 /**
- * 指定銘柄の現在価格と基準価格を取得する
- * nav_history テーブル（既存）を活用
+ * 指定 fund の現在価格と基準価格を nav_history から取得する
  */
 export async function getPriceData(
   db: D1Database,
-  symbol: string,
+  fundId: string,
   windowHours: number
 ): Promise<PriceData | null> {
-  // 現時点では nav_history（eMAXIS 単一銘柄）のみ対応
-  // symbol が EMAXIS_AC の場合は nav_history を使う
-  // 将来的に price_snapshots テーブルや外部APIに拡張可能
-
   const currentRow = await db.prepare(
-    'SELECT nav FROM nav_history ORDER BY date DESC LIMIT 1'
-  ).first<{ nav: number }>();
+    'SELECT nav FROM nav_history WHERE fund_id = ? ORDER BY date DESC LIMIT 1'
+  ).bind(fundId).first<{ nav: number }>();
 
   if (!currentRow) return null;
 
@@ -34,9 +29,9 @@ export async function getPriceData(
 
   const baselineRow = await db.prepare(
     `SELECT nav FROM nav_history
-     WHERE date <= date('now', ? || ' days')
+     WHERE fund_id = ? AND date <= date('now', ? || ' days')
      ORDER BY date DESC LIMIT 1`
-  ).bind(`-${windowDays}`).first<{ nav: number }>();
+  ).bind(fundId, `-${windowDays}`).first<{ nav: number }>();
 
   if (!baselineRow) return null;
 
@@ -74,7 +69,18 @@ export async function checkWatchlistAlert(
   db: D1Database,
   watchlist: Watchlist
 ): Promise<AlertCheckResult> {
-  const priceData = await getPriceData(db, watchlist.symbol, watchlist.window_hours);
+  if (!watchlist.fund_id) {
+    return {
+      symbol: watchlist.symbol,
+      dropPct: 0,
+      baselinePrice: 0,
+      currentPrice: 0,
+      notified: false,
+      reason: 'no_fund_mapping',
+    };
+  }
+
+  const priceData = await getPriceData(db, watchlist.fund_id, watchlist.window_hours);
 
   if (!priceData) {
     return {
