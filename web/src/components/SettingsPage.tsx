@@ -44,7 +44,8 @@ export const SettingsPage: React.FC = () => {
     display_name: string;
     fund_id: string;
     drop_threshold_pct: number;
-    window_hours: number;
+    rise_threshold_pct: number;
+    window_days: number;
     cooldown_minutes: number;
   }) => {
     setMutating(true);

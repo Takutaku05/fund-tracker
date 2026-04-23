@@ -17,7 +17,8 @@ migrations_dir = "src/db/migrations"
 [vars]
 DEFAULT_FUND_ID = "emaxis-ac"  # 銘柄未指定時のフォールバック（funds.id）
 DEFAULT_DROP_THRESHOLD = "5"
-DEFAULT_WINDOW_HOURS = "24"
+DEFAULT_RISE_THRESHOLD = "0"
+DEFAULT_WINDOW_DAYS = "1"
 DEFAULT_COOLDOWN_MINUTES = "180"
 APP_BASE_URL = "https://fund-tracker-worker.takuto-cocoa1911.workers.dev"
 FRONTEND_URL = "https://fund-tracker-web-awo.pages.dev"

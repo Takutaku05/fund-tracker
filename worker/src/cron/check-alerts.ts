@@ -4,7 +4,7 @@
  */
 
 import type { Env } from '../types';
-import type { Watchlist, NotificationChannel } from '../types/alert';
+import type { Watchlist, NotificationChannel, AlertTriggerType } from '../types/alert';
 import { checkWatchlistAlert } from '../lib/alert-checker';
 import { sendDiscordAlert } from '../lib/discord';
 import { decrypt } from '../lib/crypto';
@@ -36,10 +36,13 @@ export async function handleCronCheckAlerts(env: Env): Promise<void> {
       if (!result.notified) {
         skippedCount++;
         console.log(
-          `[alert-cron] Skip ${watchlist.symbol} (user=${watchlist.user_id}): ${result.reason}, drop=${result.dropPct.toFixed(2)}%`
+          `[alert-cron] Skip ${watchlist.symbol} (user=${watchlist.user_id}): ${result.reason}, change=${result.changePct.toFixed(2)}%`
         );
         continue;
       }
+
+      // notified === true なら必ず triggerType が設定される
+      const triggerType = result.triggerType!;
 
       // 3. ユーザーの有効な通知チャンネルを取得
       const channels = await env.DB.prepare(
@@ -53,7 +56,7 @@ export async function handleCronCheckAlerts(env: Env): Promise<void> {
         );
 
         // alert_events に記録（チャンネルなし）
-        await saveAlertEvent(env.DB, watchlist, result.dropPct, result.baselinePrice, result.currentPrice, 'failed', 'No notification channel configured');
+        await saveAlertEvent(env.DB, watchlist, triggerType, result.changePct, result.baselinePrice, result.currentPrice, 'failed', 'No notification channel configured');
         continue;
       }
 
@@ -68,10 +71,11 @@ export async function handleCronCheckAlerts(env: Env): Promise<void> {
           const error = await sendDiscordAlert(webhookUrl, {
             symbol: watchlist.symbol,
             displayName: watchlist.display_name,
-            dropPct: result.dropPct,
+            triggerType,
+            changePct: result.changePct,
             baselinePrice: result.baselinePrice,
             currentPrice: result.currentPrice,
-            windowHours: watchlist.window_hours,
+            windowDays: watchlist.window_days,
           });
 
           if (error) {
@@ -82,7 +86,7 @@ export async function handleCronCheckAlerts(env: Env): Promise<void> {
           } else {
             notifiedCount++;
             console.log(
-              `[alert-cron] Notified ${watchlist.symbol} (user=${watchlist.user_id}): drop=${result.dropPct.toFixed(2)}%`
+              `[alert-cron] Notified ${watchlist.symbol} (user=${watchlist.user_id}): ${triggerType}=${result.changePct.toFixed(2)}%`
             );
           }
         } catch (err) {
@@ -94,7 +98,7 @@ export async function handleCronCheckAlerts(env: Env): Promise<void> {
 
         // 5. alert_events に保存
         await saveAlertEvent(
-          env.DB, watchlist, result.dropPct,
+          env.DB, watchlist, triggerType, result.changePct,
           result.baselinePrice, result.currentPrice,
           deliveryStatus, deliveryError
         );
@@ -118,7 +122,8 @@ export async function handleCronCheckAlerts(env: Env): Promise<void> {
 async function saveAlertEvent(
   db: D1Database,
   watchlist: Watchlist,
-  dropPct: number,
+  triggerType: AlertTriggerType,
+  changePct: number,
   baselinePrice: number,
   currentPrice: number,
   deliveryStatus: 'sent' | 'failed',
@@ -128,13 +133,14 @@ async function saveAlertEvent(
 
   await db.prepare(
     `INSERT INTO alert_events (id, user_id, watchlist_id, symbol, trigger_type, drop_pct, baseline_price, current_price, delivery_status, delivery_error)
-     VALUES (?, ?, ?, ?, 'drop_threshold', ?, ?, ?, ?, ?)`
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id,
     watchlist.user_id,
     watchlist.id,
     watchlist.symbol,
-    dropPct,
+    triggerType,
+    changePct,
     baselinePrice,
     currentPrice,
     deliveryStatus,

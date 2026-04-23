@@ -18,7 +18,9 @@ export interface Watchlist {
   display_name: string;
   enabled: number; // D1 stores boolean as 0/1
   drop_threshold_pct: number;
-  window_hours: number;
+  rise_threshold_pct: number;
+  window_days: number;
+  window_hours: number; // legacy column, kept for rollback safety; no longer read
   cooldown_minutes: number;
   last_notified_at: string | null;
   fund_id: string | null; // 紐付く銘柄（funds.id）。NULL の場合は価格データなし扱い
@@ -44,12 +46,15 @@ export interface PriceSnapshot {
   captured_at: string;
 }
 
+export type AlertTriggerType = 'drop_threshold' | 'rise_threshold';
+
 export interface AlertEvent {
   id: string;
   user_id: string;
   watchlist_id: string;
   symbol: string;
-  trigger_type: 'drop_threshold';
+  trigger_type: AlertTriggerType;
+  // drop_pct フィールドは変化率の絶対値を保存する（下落なら下落率、上昇なら上昇率）
   drop_pct: number;
   baseline_price: number;
   current_price: number;
@@ -65,7 +70,8 @@ export interface WatchlistInput {
   display_name: string;
   fund_id?: string;
   drop_threshold_pct?: number;
-  window_hours?: number;
+  rise_threshold_pct?: number;
+  window_days?: number;
   cooldown_minutes?: number;
   enabled?: boolean;
 }
@@ -77,7 +83,8 @@ export interface WatchlistResponse {
   fundId: string | null;
   enabled: boolean;
   dropThresholdPct: number;
-  windowHours: number;
+  riseThresholdPct: number;
+  windowDays: number;
   cooldownMinutes: number;
   lastNotifiedAt: string | null;
 }
@@ -98,7 +105,9 @@ export interface NotificationChannelResponse {
 
 export interface AlertCheckResult {
   symbol: string;
-  dropPct: number;
+  triggerType: AlertTriggerType | null;
+  // 下落/上昇アラートのいずれかで条件を満たした変化率の絶対値
+  changePct: number;
   baselinePrice: number;
   currentPrice: number;
   notified: boolean;

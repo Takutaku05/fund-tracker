@@ -8,6 +8,10 @@ interface WatchlistListProps {
   loading: boolean;
 }
 
+function formatThreshold(pct: number): string {
+  return pct > 0 ? `${pct}%` : '-';
+}
+
 export const WatchlistList: React.FC<WatchlistListProps> = ({
   items,
   onToggle,
@@ -23,6 +27,7 @@ export const WatchlistList: React.FC<WatchlistListProps> = ({
       <div className="watchlist-header">
         <span>銘柄</span>
         <span>下落率</span>
+        <span>上昇率</span>
         <span>比較期間</span>
         <span>状態</span>
         <span></span>
@@ -33,8 +38,9 @@ export const WatchlistList: React.FC<WatchlistListProps> = ({
             <strong>{item.symbol}</strong>
             <small>{item.displayName}</small>
           </span>
-          <span>{item.dropThresholdPct}%</span>
-          <span>{item.windowHours >= 24 ? `${Math.round(item.windowHours / 24)}日` : `${item.windowHours}h`}</span>
+          <span>{formatThreshold(item.dropThresholdPct)}</span>
+          <span>{formatThreshold(item.riseThresholdPct)}</span>
+          <span>{item.windowDays}日</span>
           <span>
             <button
               className={`toggle-btn ${item.enabled ? 'on' : 'off'}`}

@@ -85,7 +85,8 @@ export interface WatchlistItem {
   fundId: string | null;
   enabled: boolean;
   dropThresholdPct: number;
-  windowHours: number;
+  riseThresholdPct: number;
+  windowDays: number;
   cooldownMinutes: number;
   lastNotifiedAt: string | null;
 }
@@ -95,7 +96,8 @@ export interface WatchlistInput {
   display_name: string;
   fund_id?: string;
   drop_threshold_pct?: number;
-  window_hours?: number;
+  rise_threshold_pct?: number;
+  window_days?: number;
   cooldown_minutes?: number;
   enabled?: boolean;
 }

@@ -19,7 +19,8 @@ function toResponse(row: Watchlist): WatchlistResponse {
     fundId: row.fund_id,
     enabled: row.enabled === 1,
     dropThresholdPct: row.drop_threshold_pct,
-    windowHours: row.window_hours,
+    riseThresholdPct: row.rise_threshold_pct,
+    windowDays: row.window_days,
     cooldownMinutes: row.cooldown_minutes,
     lastNotifiedAt: row.last_notified_at,
   };
@@ -66,8 +67,8 @@ watchlists.post('/', async (c) => {
 
     const id = crypto.randomUUID();
     await c.env.DB.prepare(
-      `INSERT INTO watchlists (id, user_id, symbol, display_name, fund_id, enabled, drop_threshold_pct, window_hours, cooldown_minutes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO watchlists (id, user_id, symbol, display_name, fund_id, enabled, drop_threshold_pct, rise_threshold_pct, window_days, cooldown_minutes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       id,
       user.id,
@@ -76,7 +77,8 @@ watchlists.post('/', async (c) => {
       fundId,
       body.enabled !== false ? 1 : 0,
       body.drop_threshold_pct ?? 5.0,
-      body.window_hours ?? 24,
+      body.rise_threshold_pct ?? 0.0,
+      body.window_days ?? 1,
       body.cooldown_minutes ?? 180
     ).run();
 
@@ -130,9 +132,13 @@ watchlists.patch('/:id', async (c) => {
       updates.push('drop_threshold_pct = ?');
       values.push(body.drop_threshold_pct);
     }
-    if (body.window_hours !== undefined) {
-      updates.push('window_hours = ?');
-      values.push(body.window_hours);
+    if (body.rise_threshold_pct !== undefined) {
+      updates.push('rise_threshold_pct = ?');
+      values.push(body.rise_threshold_pct);
+    }
+    if (body.window_days !== undefined) {
+      updates.push('window_days = ?');
+      values.push(body.window_days);
     }
     if (body.cooldown_minutes !== undefined) {
       updates.push('cooldown_minutes = ?');

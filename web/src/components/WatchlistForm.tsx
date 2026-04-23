@@ -8,7 +8,8 @@ interface WatchlistFormProps {
     display_name: string;
     fund_id: string;
     drop_threshold_pct: number;
-    window_hours: number;
+    rise_threshold_pct: number;
+    window_days: number;
     cooldown_minutes: number;
   }) => Promise<void>;
   loading: boolean;
@@ -23,8 +24,9 @@ export const WatchlistForm: React.FC<WatchlistFormProps> = ({
   const [funds, setFunds] = useState<FundMeta[]>([]);
   const [fundsLoading, setFundsLoading] = useState(true);
   const [selectedFundId, setSelectedFundId] = useState('');
-  const [threshold, setThreshold] = useState('5');
-  const [windowHours, setWindowHours] = useState('24');
+  const [dropThreshold, setDropThreshold] = useState('5');
+  const [riseThreshold, setRiseThreshold] = useState('0');
+  const [windowDays, setWindowDays] = useState('1');
   const [cooldown, setCooldown] = useState('180');
   const [error, setError] = useState('');
 
@@ -68,17 +70,26 @@ export const WatchlistForm: React.FC<WatchlistFormProps> = ({
       return;
     }
 
+    const dropPct = parseFloat(dropThreshold);
+    const risePct = parseFloat(riseThreshold);
+    if ((isNaN(dropPct) || dropPct <= 0) && (isNaN(risePct) || risePct <= 0)) {
+      setError('下落率または上昇率のいずれかを 0 より大きい値で指定してください');
+      return;
+    }
+
     try {
       await onSubmit({
         symbol: fund.id,
         display_name: fund.nameJa,
         fund_id: fund.id,
-        drop_threshold_pct: parseFloat(threshold) || 5,
-        window_hours: parseInt(windowHours) || 24,
+        drop_threshold_pct: isNaN(dropPct) ? 0 : dropPct,
+        rise_threshold_pct: isNaN(risePct) ? 0 : risePct,
+        window_days: parseInt(windowDays) || 1,
         cooldown_minutes: parseInt(cooldown) || 180,
       });
-      setThreshold('5');
-      setWindowHours('24');
+      setDropThreshold('5');
+      setRiseThreshold('0');
+      setWindowDays('1');
       setCooldown('180');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'エラーが発生しました');
@@ -116,24 +127,36 @@ export const WatchlistForm: React.FC<WatchlistFormProps> = ({
       </div>
       <div className="form-row form-row-3">
         <div className="form-field">
-          <label>下落率 (%)</label>
+          <label>下落率 (%) <small>0で無効</small></label>
           <input
             type="number"
-            value={threshold}
-            onChange={(e) => setThreshold(e.target.value)}
-            min="0.1"
+            value={dropThreshold}
+            onChange={(e) => setDropThreshold(e.target.value)}
+            min="0"
             step="0.1"
           />
         </div>
         <div className="form-field">
-          <label>比較期間 (時間)</label>
+          <label>上昇率 (%) <small>0で無効</small></label>
           <input
             type="number"
-            value={windowHours}
-            onChange={(e) => setWindowHours(e.target.value)}
+            value={riseThreshold}
+            onChange={(e) => setRiseThreshold(e.target.value)}
+            min="0"
+            step="0.1"
+          />
+        </div>
+        <div className="form-field">
+          <label>比較期間 (日)</label>
+          <input
+            type="number"
+            value={windowDays}
+            onChange={(e) => setWindowDays(e.target.value)}
             min="1"
           />
         </div>
+      </div>
+      <div className="form-row">
         <div className="form-field">
           <label>再通知抑制 (分)</label>
           <input
