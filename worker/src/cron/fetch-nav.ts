@@ -1,6 +1,7 @@
 import type { Env } from '../types';
 import { fetchNavForFund } from '../lib/fund-fetcher';
 import { loadEnabledFunds } from '../lib/funds';
+import { syncCatalogToDb } from '../lib/sync-catalog';
 
 /**
  * Cron Trigger ハンドラ
@@ -8,6 +9,13 @@ import { loadEnabledFunds } from '../lib/funds';
  */
 export async function handleCronFetchNav(env: Env): Promise<void> {
   console.log('[cron] Starting NAV fetch...');
+
+  try {
+    await syncCatalogToDb(env.DB);
+  } catch (error) {
+    // sync が失敗しても既存銘柄の NAV 取得は続行する
+    console.error('[cron] syncCatalogToDb failed, continuing with existing funds:', error);
+  }
 
   const funds = await loadEnabledFunds(env.DB);
   if (funds.length === 0) {

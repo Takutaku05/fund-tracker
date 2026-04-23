@@ -11,6 +11,10 @@ export interface Env {
   PRICE_API_KEY?: string;       // 外部価格API用（必要に応じて）
 }
 
+// 新しいデータソースを追加する場合:
+// 1. ここに union を追加（例: | 'yahoo_finance'）
+// 2. worker/src/lib/fund-fetcher.ts の switch に case を追加
+// 3. 対応する fetcher 関数を worker/src/lib/ に作成
 export type FundDataSource = 'toushin_lib';
 
 /** funds テーブルの行 */

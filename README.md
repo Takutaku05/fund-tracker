@@ -1,94 +1,136 @@
 # Fund Tracker
 
-Cloudflare 関連サービス (Workers, D1, Pages) を活用した、eMAXIS Slim 全世界株式（オール・カントリー）の基準価額・下落率トラッカーです。下落率しきい値を超えた場合の Discord 通知にも対応しています。
+Cloudflare Workers / D1 / Pages を使った投資信託の基準価額・下落率トラッカーです。
+複数銘柄の切り替え、全期間および任意期間のドローダウン可視化、下落率しきい値を超えたときの Discord 通知に対応しています。
 
 [アクセスリンク](https://fund-tracker-web-awo.pages.dev/)
+
+現在カタログに含まれる銘柄:
+
+- eMAXIS Slim 全世界株式（オール・カントリー） — ISIN `JP90C000H1T1`
+- eMAXIS Slim 米国株式（S&P500） — ISIN `JP90C000GKC6`
 
 ## 主な機能
 
 ### ダッシュボード
+- **銘柄セレクタ**: `/api/funds` から有効な銘柄一覧を取得し、ヘッダーで切替。選択はローカルストレージに保持
 - **基準価額 / 純資産総額**: 最新の基準価額と前日比、純資産総額を表示
-- **全期間最高値からの下落率**: データベース全レコードの最高値からの下落率（ドローダウン）
-- **期間ピーク下落率 / 上昇率**: 選択した期間（1W / 1M / 3M / 6M / 1Y / ALL）の高値・安値を基準にしたドローダウンとリターン
-- **基準価額チャート**: 期間内の価格推移を Recharts で可視化し、ピーク値に参照線を描画
+- **全期間最高値からの下落率**: DB 全レコードの最高値からのドローダウン
+- **期間ピーク下落率 / 上昇率**: 選択期間（1W / 1M / 3M / 6M / 1Y / ALL）の高値・安値からのドローダウン・リターン
+- **基準価額チャート**: Recharts による時系列チャート。期間ピークに参照線を描画
 
 ### アラート通知（要ログイン）
-- **Google OAuth ログイン**: Google アカウントでサインインし、ユーザーごとに設定を保持
-- **監視銘柄 (Watchlist)**: 下落率しきい値、比較期間、再通知クールダウン時間を銘柄単位で設定
-- **Discord Webhook 通知**: 暗号化して保存した Webhook URL に対して条件達成時に自動通知。テスト送信にも対応
-- **自動判定**: 毎日の基準価額取得後に全ユーザーの watchlist を走査し、条件を満たしたものだけ通知
+- **Google OAuth ログイン**: ユーザーごとに設定を保持
+- **監視銘柄 (Watchlist)**: 銘柄単位で下落率しきい値・比較期間・再通知クールダウンを設定
+- **Discord Webhook 通知**: Webhook URL は暗号化して D1 に保存。テスト送信エンドポイントあり
+- **自動判定**: 日次 NAV 取得後に全ユーザーの watchlist を走査し、条件合致のみ通知
 
 ### 自動データ収集
-- **Cron Trigger**: 毎日 18:00 UTC（03:00 JST）に投資信託協会の投信総合検索ライブラリー CSV API から最新の基準価額を取得して D1 に保存し、続けてアラート判定を実行
+- **Cron Trigger**: 毎日 18:00 UTC (03:00 JST) に実行
+  1. `FUND_CATALOG`（コード上の定義）を `funds` テーブルへ同期（upsert + カタログから消えたものは `enabled=0`）
+  2. 有効な全銘柄について投信総合検索ライブラリー CSV API から基準価額を取得し `nav_history` へ upsert
+  3. 全ユーザーの watchlist を評価して Discord 通知
 
 ## 技術スタック
 - **バックエンド**: Cloudflare Workers, Hono, TypeScript
 - **データベース**: Cloudflare D1 (SQLite)
 - **認証**: Google OAuth 2.0 + Cookie セッション
 - **フロントエンド**: Cloudflare Pages, React 19, Vite, Recharts, TypeScript
+- **テスト**: Vitest（Worker 側）
 
 ## アーキテクチャ
 
 ```
-┌──────────────┐   Cron (18:00 UTC)   ┌────────────────────┐
-│ Cloudflare   │ ───────────────────▶ │ fetch-nav          │──▶ D1: nav_history
-│ Scheduled    │                       │ → check-alerts     │──▶ Discord Webhook
-└──────────────┘                       └────────────────────┘
+┌──────────────┐   Cron (18:00 UTC)   ┌──────────────────────────────┐
+│ Cloudflare   │ ───────────────────▶ │ syncCatalogToDb              │──▶ D1: funds
+│ Scheduled    │                       │ → fetchNavForFund (全銘柄)   │──▶ D1: nav_history
+└──────────────┘                       │ → check-alerts               │──▶ Discord Webhook
+                                       └──────────────────────────────┘
                                               ▲
 ┌──────────────┐     /api/*  (CORS)          │
-│ Pages (React)│ ───────────────────▶ ┌─────────────────────┐
-│   + Recharts │   Cookie セッション  │ Workers (Hono)       │
-└──────────────┘ ◀─────────────────── │  auth / nav / history│
-                                       │  watchlists / channels│
-                                       └─────────────────────┘
+│ Pages (React)│ ───────────────────▶ ┌─────────────────────────────┐
+│  + Recharts  │   Cookie セッション   │ Workers (Hono)              │
+│  FundSelector│ ◀─────────────────── │ auth/nav/history/funds/     │
+└──────────────┘                       │ watchlists/channels         │
+                                       └─────────────────────────────┘
 ```
 
 ### 主要エンドポイント（Workers）
 - `GET /api/auth/login` — Google OAuth 認可へリダイレクト
 - `GET /api/auth/callback` — OAuth コールバック、セッション発行
 - `GET /api/auth/me` / `POST /api/auth/logout`
-- `GET /api/nav/latest` — 最新基準価額
-- `GET /api/nav/alltime-peak` — 全期間最高値
-- `GET /api/history?period=week|month|3month|6month|year|all`
+- `GET /api/funds` — 有効な銘柄一覧（フロントの切り替え UI 用）
+- `GET /api/nav/latest?fundId=...` — 指定銘柄の最新基準価額
+- `GET /api/nav/alltime-peak?fundId=...` — 指定銘柄の全期間最高値
+- `GET /api/history?fundId=...&period=week|month|3month|6month|year|all`
 - `GET|POST /api/settings/watchlists` / `PATCH|DELETE /api/settings/watchlists/:id`
 - `GET|POST /api/settings/notification-channels` / `PATCH /api/settings/notification-channels/:id`
 - `POST /api/settings/notification-channels/:id/test` — Webhook テスト送信
-- `GET /api/dev/seed` — 開発用: 即時にデータ取得を実行
+- `GET /api/dev/seed` — 開発用: カタログ同期 + NAV 取得を即時実行
 - `GET /api/health`
 
+`fundId` を省略した場合は `DEFAULT_FUND_ID`（`wrangler.toml` の `vars`）にフォールバックします。
+
 ### データモデル（D1）
-- `nav_history` — 日次基準価額・純資産総額
+- `funds` — 銘柄マスタ。`FUND_CATALOG` から同期される
+- `nav_history` — `(fund_id, date)` ユニークな日次基準価額・純資産総額
 - `users` — OAuth プロバイダ + subject で一意管理
-- `sessions` — セッション Cookie に対応
-- `watchlists` — 監視銘柄（下落率しきい値・期間・クールダウン）
+- `sessions` — セッション Cookie
+- `watchlists` — 銘柄ごとの下落率しきい値・期間・クールダウン
 - `notification_channels` — Discord Webhook（暗号化保存）
 - `price_snapshots` / `alert_events` — アラート判定・送信履歴
+
+マイグレーション（`worker/src/db/migrations/`）:
+- `0001_add_alert_system.sql`
+- `0002_add_sessions.sql`
+- `0003_multi_fund.sql` — 複数銘柄対応（`funds` テーブル追加、`nav_history` に `fund_id`）
+- `0004_add_sp500.sql`
+
+## 銘柄の追加方法
+
+1. `worker/src/config/fund-catalog.ts` の `FUND_CATALOG` にエントリを追加
+   ```ts
+   {
+     id: 'your-fund-id',
+     nameJa: '銘柄名',
+     isin: 'JPxxxxxxxxxx',
+     dataSource: 'toushin_lib',
+     sourceParams: { isinCd: 'JPxxxxxxxxxx', associFundCd: 'xxxxxxxx' },
+   }
+   ```
+2. デプロイ後、次回 cron または `GET /api/dev/seed` 実行時に `funds` テーブルへ自動反映されます。
+3. カタログから消したエントリは物理削除せず `enabled=0` に落ちます（`nav_history` の FK 整合のため）。完全削除したい場合は手動で `DELETE` してください。
 
 ## ローカル開発
 
 ### 1. バックエンド (Worker)
 
-`worker/wrangler.toml` の環境変数を必要に応じて編集してください。
-- `FUND_CD`: ファンドコード（デフォルト: `253425`）
-- `APP_BASE_URL`: Worker 自身の URL（OAuth redirect_uri に使用）
-- `FRONTEND_URL`: フロントエンド URL（CORS / OAuth 後のリダイレクト）
-- `DEFAULT_DROP_THRESHOLD` / `DEFAULT_WINDOW_HOURS` / `DEFAULT_COOLDOWN_MINUTES`
-
-依存パッケージをインストールし、ローカル DB を初期化して開発サーバーを起動します。
-
 ```bash
 cd worker
 npm install
-npm run db:init
+npm run db:init                                       # スキーマ適用
 npx wrangler d1 migrations apply fund-tracker-db --local
 npm run dev
 ```
 
-ローカル DB に基準価額を投入したい場合:
+ローカル DB に初期データを投入:
 
 ```bash
 curl http://localhost:8787/api/dev/seed
 ```
+
+テスト:
+
+```bash
+cd worker
+npm test      # Vitest
+```
+
+`wrangler.toml` の主な環境変数:
+- `DEFAULT_FUND_ID` — `fundId` 未指定時のフォールバック（デフォルト `emaxis-ac`）
+- `APP_BASE_URL` — Worker 自身の URL（OAuth redirect_uri に使用）
+- `FRONTEND_URL` — フロントエンド URL（CORS / OAuth 後のリダイレクト）
+- `DEFAULT_DROP_THRESHOLD` / `DEFAULT_WINDOW_HOURS` / `DEFAULT_COOLDOWN_MINUTES`
 
 ### 2. フロントエンド (Web)
 
@@ -98,15 +140,15 @@ npm install
 npm run dev
 ```
 
-ブラウザで `http://localhost:5173` を開きます。認証を試す場合は、Worker 側に Google OAuth のシークレットを設定し、`APP_BASE_URL` / `FRONTEND_URL` をローカルに合わせてください。
+ブラウザで `http://localhost:5173` を開きます。`VITE_API_BASE` を指定しない場合はデフォルトの Worker URL（`web/src/lib/api.ts` 参照）が使われます。
 
 ## デプロイ方法
 
 ### 前提条件
 - [Cloudflare アカウント](https://dash.cloudflare.com/sign-up)
 - Wrangler CLI（`worker/node_modules` に含まれる）
-- `npx wrangler login` で認証済みであること
-- Google Cloud Console で OAuth クライアントを作成し、承認済みリダイレクト URI に `https://<worker-domain>/api/auth/callback` を登録済みであること
+- `npx wrangler login` で認証済み
+- Google Cloud Console で OAuth クライアントを作成し、承認済みリダイレクト URI に `https://<worker-domain>/api/auth/callback` を登録済み
 
 ### 1. D1 データベースの作成とスキーマ適用
 
@@ -117,16 +159,9 @@ cd worker
 npx wrangler d1 create fund-tracker-db
 ```
 
-出力された `database_id` を `worker/wrangler.toml` に反映します。
+出力された `database_id` を `worker/wrangler.toml` の `[[d1_databases]]` セクションに反映します。
 
-```toml
-[[d1_databases]]
-binding = "DB"
-database_name = "fund-tracker-db"
-database_id = "<ここに出力された ID を貼り付け>"
-```
-
-スキーマとマイグレーションをリモート DB に適用します。
+スキーマとマイグレーションをリモート DB に適用:
 
 ```bash
 npm run db:init:remote
@@ -135,11 +170,9 @@ npx wrangler d1 migrations apply fund-tracker-db --remote
 
 ### 2. Workers のシークレット設定
 
-`wrangler.toml` に入れない機密情報を設定します。
-
 ```bash
 cd worker
-npx wrangler secret put ENCRYPTION_KEY        # Webhook URL 暗号化用（任意の強いランダム文字列）
+npx wrangler secret put ENCRYPTION_KEY        # Webhook URL 暗号化用の強いランダム文字列
 npx wrangler secret put GOOGLE_CLIENT_ID
 npx wrangler secret put GOOGLE_CLIENT_SECRET
 # 任意
@@ -154,7 +187,7 @@ cd worker
 npm run deploy
 ```
 
-Cron Trigger（`0 18 * * *` = 18:00 UTC / 03:00 JST）は `wrangler.toml` の設定から自動登録されます。
+Cron Trigger（`0 18 * * *`）は `wrangler.toml` から自動登録されます。
 
 ### 4. Pages（フロントエンド）のデプロイ
 
@@ -181,11 +214,11 @@ npx wrangler pages deploy dist --project-name=fund-tracker-web
 
 ### 5. デプロイ後の確認
 
-1. Pages の URL でチャートと下落率カードが表示されること
+1. Pages の URL でチャートと下落率カードが表示されること、銘柄セレクタで切り替えできること
 2. **Workers & Pages** > `fund-tracker-worker` > **Triggers** に Cron が登録されていること
 3. 初回はデータが空のため、`/api/dev/seed` を叩くか Cron 実行を待って初期データを投入
 4. Google ログインを試し、設定ページから watchlist / Discord Webhook を登録
 
 ## データソース
 - 基準価額データは [投信総合検索ライブラリー](https://toushin-lib.fwg.ne.jp/FdsWeb/) (投資信託協会) の CSV API を使用しています。
-- ISIN コード: `JP90C000H1T1` / ファンドコード: `0331418A`
+- 銘柄定義は `worker/src/config/fund-catalog.ts` の `FUND_CATALOG` で一元管理しています。
