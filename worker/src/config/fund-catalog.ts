@@ -33,4 +33,11 @@ export const FUND_CATALOG: FundDefinition[] = [
     dataSource: 'toushin_lib',
     sourceParams: { isinCd: 'JP90C000GKC6', associFundCd: '03311187' },
   },
+  {
+    id: 'ifree-fang-plus',
+    nameJa: 'iFreeNEXT FANG+インデックス',
+    isin: 'JP90C000FZD4',
+    dataSource: 'toushin_lib',
+    sourceParams: { isinCd: 'JP90C000FZD4', associFundCd: '04311181' },
+  },
 ];
