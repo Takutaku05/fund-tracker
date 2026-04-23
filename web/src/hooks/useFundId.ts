@@ -24,15 +24,12 @@ export function useFundId(): [string, (next: string) => void] {
   }, []);
 
   const changeFund = useCallback((next: string) => {
-    if (!next || typeof window === 'undefined') return;
-    setFundId(prev => {
-      if (prev === next) return prev;
-      const url = new URL(window.location.href);
-      url.searchParams.set('fund', next);
-      window.history.pushState(null, '', url.toString());
-      return next;
-    });
-  }, []);
+    if (!next || typeof window === 'undefined' || fundId === next) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set('fund', next);
+    window.history.pushState(null, '', url.toString());
+    setFundId(next);
+  }, [fundId]);
 
   return [fundId, changeFund];
 }
