@@ -4,6 +4,7 @@ import type {
   AlltimePeakData,
   HistoryPayload,
   Period,
+  FundMeta,
   WatchlistItem,
   WatchlistInput,
   NotificationChannelItem,
@@ -63,6 +64,10 @@ export function fetchAlltimePeak(fundId?: string): Promise<AlltimePeakData> {
 
 export function fetchHistory(period: Period, fundId?: string): Promise<HistoryPayload> {
   return fetchApi<HistoryPayload>(withFund(`/api/history?period=${period}`, fundId));
+}
+
+export function fetchFunds(): Promise<FundMeta[]> {
+  return fetchApi<{ funds: FundMeta[] }>('/api/funds').then(r => r.funds);
 }
 
 export function fetchHealth(): Promise<{ status: string; records: number; timestamp: string }> {
