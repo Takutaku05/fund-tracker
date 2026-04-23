@@ -1,43 +1,82 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { fetchFunds } from '../lib/api';
+import type { FundMeta } from '../types';
 
 interface WatchlistFormProps {
   onSubmit: (data: {
     symbol: string;
     display_name: string;
+    fund_id: string;
     drop_threshold_pct: number;
     window_hours: number;
     cooldown_minutes: number;
   }) => Promise<void>;
   loading: boolean;
+  existingFundIds?: string[];
 }
 
-export const WatchlistForm: React.FC<WatchlistFormProps> = ({ onSubmit, loading }) => {
-  const [symbol, setSymbol] = useState('');
-  const [displayName, setDisplayName] = useState('');
+export const WatchlistForm: React.FC<WatchlistFormProps> = ({
+  onSubmit,
+  loading,
+  existingFundIds = [],
+}) => {
+  const [funds, setFunds] = useState<FundMeta[]>([]);
+  const [fundsLoading, setFundsLoading] = useState(true);
+  const [selectedFundId, setSelectedFundId] = useState('');
   const [threshold, setThreshold] = useState('5');
   const [windowHours, setWindowHours] = useState('24');
   const [cooldown, setCooldown] = useState('180');
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    let cancelled = false;
+    fetchFunds()
+      .then((list) => {
+        if (!cancelled) setFunds(list);
+      })
+      .catch(() => {
+        if (!cancelled) setFunds([]);
+      })
+      .finally(() => {
+        if (!cancelled) setFundsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const availableFunds = useMemo(
+    () => funds.filter((f) => !existingFundIds.includes(f.id)),
+    [funds, existingFundIds]
+  );
+
+  useEffect(() => {
+    if (!selectedFundId && availableFunds.length > 0) {
+      setSelectedFundId(availableFunds[0].id);
+    } else if (selectedFundId && !availableFunds.some((f) => f.id === selectedFundId)) {
+      setSelectedFundId(availableFunds[0]?.id ?? '');
+    }
+  }, [availableFunds, selectedFundId]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!symbol.trim() || !displayName.trim()) {
-      setError('銘柄コードと表示名は必須です');
+    const fund = availableFunds.find((f) => f.id === selectedFundId);
+    if (!fund) {
+      setError('銘柄を選択してください');
       return;
     }
 
     try {
       await onSubmit({
-        symbol: symbol.trim(),
-        display_name: displayName.trim(),
+        symbol: fund.id,
+        display_name: fund.nameJa,
+        fund_id: fund.id,
         drop_threshold_pct: parseFloat(threshold) || 5,
         window_hours: parseInt(windowHours) || 24,
         cooldown_minutes: parseInt(cooldown) || 180,
       });
-      setSymbol('');
-      setDisplayName('');
       setThreshold('5');
       setWindowHours('24');
       setCooldown('180');
@@ -46,26 +85,33 @@ export const WatchlistForm: React.FC<WatchlistFormProps> = ({ onSubmit, loading 
     }
   };
 
+  if (fundsLoading) {
+    return <p className="empty-state">銘柄一覧を読み込み中...</p>;
+  }
+
+  if (funds.length === 0) {
+    return <p className="empty-state">利用可能な銘柄がありません。</p>;
+  }
+
+  if (availableFunds.length === 0) {
+    return <p className="empty-state">すべての銘柄が監視リストに追加済みです。</p>;
+  }
+
   return (
     <form className="settings-form" onSubmit={handleSubmit}>
       <div className="form-row">
         <div className="form-field">
-          <label>銘柄コード</label>
-          <input
-            type="text"
-            value={symbol}
-            onChange={(e) => setSymbol(e.target.value)}
-            placeholder="例: EMAXIS_AC"
-          />
-        </div>
-        <div className="form-field">
-          <label>表示名</label>
-          <input
-            type="text"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="例: eMAXIS Slim 全世界株式"
-          />
+          <label>銘柄</label>
+          <select
+            value={selectedFundId}
+            onChange={(e) => setSelectedFundId(e.target.value)}
+          >
+            {availableFunds.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.nameJa}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
       <div className="form-row form-row-3">

@@ -23,26 +23,27 @@ export async function handleCronFetchNav(env: Env): Promise<void> {
     return;
   }
 
+  const BATCH_SIZE = 100;
+
   for (const fund of funds) {
     try {
       const rows = await fetchNavForFund(fund);
       console.log(`[cron] fund=${fund.id} fetched ${rows.length} rows`);
 
       let inserted = 0;
-      for (const row of rows) {
-        const result = await env.DB.prepare(
-          `INSERT INTO nav_history (fund_id, date, nav, net_asset)
-           VALUES (?, ?, ?, ?)
-           ON CONFLICT(fund_id, date) DO UPDATE SET
-             nav = excluded.nav,
-             net_asset = excluded.net_asset`
-        )
-          .bind(fund.id, row.date, row.nav, row.netAsset)
-          .run();
-
-        if (result.meta.changes > 0) {
-          inserted++;
-        }
+      for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+        const chunk = rows.slice(i, i + BATCH_SIZE);
+        const stmts = chunk.map(row =>
+          env.DB.prepare(
+            `INSERT INTO nav_history (fund_id, date, nav, net_asset)
+             VALUES (?, ?, ?, ?)
+             ON CONFLICT(fund_id, date) DO UPDATE SET
+               nav = excluded.nav,
+               net_asset = excluded.net_asset`
+          ).bind(fund.id, row.date, row.nav, row.netAsset)
+        );
+        const results = await env.DB.batch(stmts);
+        inserted += results.reduce((sum, r) => sum + (r.meta.changes ?? 0), 0);
       }
 
       console.log(`[cron] fund=${fund.id} upserted ${inserted} rows`);

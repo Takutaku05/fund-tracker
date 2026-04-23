@@ -42,6 +42,7 @@ export const SettingsPage: React.FC = () => {
   const handleAddWatchlist = async (data: {
     symbol: string;
     display_name: string;
+    fund_id: string;
     drop_threshold_pct: number;
     window_hours: number;
     cooldown_minutes: number;
@@ -151,7 +152,13 @@ export const SettingsPage: React.FC = () => {
 
       <section className="card-section">
         <div className="card-section-header">監視銘柄</div>
-        <WatchlistForm onSubmit={handleAddWatchlist} loading={mutating} />
+        <WatchlistForm
+          onSubmit={handleAddWatchlist}
+          loading={mutating}
+          existingFundIds={watchlists
+            .map((w) => w.fundId)
+            .filter((id): id is string => !!id)}
+        />
         <div style={{ marginTop: '1.5rem' }}>
           <WatchlistList
             items={watchlists}
